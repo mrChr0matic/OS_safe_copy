@@ -1,0 +1,11 @@
+alias counter R0;
+counter=1;
+alias sum R4;
+sum=0;
+while(counter<=5) do
+    alias square R1;
+    square=counter*counter;
+    sum=sum+square;
+    breakpoint;
+    counter=counter+1;
+endwhile;

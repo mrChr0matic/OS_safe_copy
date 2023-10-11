@@ -1,0 +1,147 @@
+breakpoint;
+
+alias userSP R0;
+userSP = SP;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11]*512 - 1;		//change
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9;
+
+alias file_name R1;
+file_name = [([PTBR + 2 * (userSP - 4)/ 512] * 512) + ((userSP - 4) % 512)];  // change
+
+alias inode_index R6;
+inode_index = 0;
+while( inode_index < MAX_FILE_NUM && [INODE_TABLE + inode_index*16 + 1] != file_name) do
+	inode_index = inode_index + 1;	
+endwhile;
+
+if ( inode_index == MAX_FILE_NUM || [INODE_TABLE + inode_index*16 + 1] != file_name || [INODE_TABLE + inode_index*16 + 0] != EXEC) then
+	[([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512)] = -1;
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+	SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13];
+	ireturn;
+endif;
+
+multipush(R0,R1,R2);
+	 
+alias func_num R1;
+alias currPID R2;
+func_num = 3;
+currPID = [SYSTEM_STATUS_TABLE + 1];
+	 
+call PROCESS_MANAGER;
+	 
+multipop(R0,R1,R2);
+
+alias user_area_page_num R3;
+user_area_page_num = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11];
+[MEMORY_FREE_LIST + user_area_page_num] = [MEMORY_FREE_LIST + user_area_page_num] + 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+SP = user_area_page_num*512 - 1;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = RUNNING;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 7] = inode_index;
+
+// setting up page table for new process
+PTBR = PAGE_TABLE_BASE+20*[SYSTEM_STATUS_TABLE + 1];
+
+//Library
+[PTBR+0] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+
+multipush(R0);
+func_num = 1;
+
+call MEMORY_MANAGER;
+
+//Heap
+[PTBR+4] = R0;
+[PTBR+5] = "0110";
+
+func_num = 1;
+call MEMORY_MANAGER;
+
+//Heap
+[PTBR+6] = R0;
+[PTBR+7] = "0110";
+
+func_num = 1;
+call MEMORY_MANAGER;
+
+//Stack
+[PTBR+16] = R0;
+[PTBR+17] = "0110";
+
+func_num = 1;
+call MEMORY_MANAGER;
+
+//Stack
+[PTBR+18] = R0;
+[PTBR+19] = "0110";
+
+multipop(R0);
+
+
+alias blocks_occupied R4;
+blocks_occupied = [INODE_TABLE + inode_index*16 + 2]/512 + 1;
+
+alias i R5;
+i = 8;
+while( blocks_occupied > 0 ) do
+	multipush(R4,R5);
+	func_num = 1;
+	call MEMORY_MANAGER;
+	multipop(R4,R5);
+	[PTBR+i] = R0;
+	[PTBR+i+1] = "0100";
+	blocks_occupied = blocks_occupied -1;
+	i = i + 2;
+endwhile;
+
+while ( i < 16) do
+	[PTBR+i] = -1;
+	[PTBR+i+1] = "0000";
+	i = i + 2;
+endwhile;
+breakpoint;
+
+// loading code from disk to memory
+alias j R7;
+i = 8;
+j = 8;
+while ( i < 16 &&  [PTBR+i] != -1 ) do
+	multipush(R1,R2,R3,R4,R5,R6,R7);
+	alias currPID R2;
+	alias page_no R3;
+	alias block_no R4;
+
+	func_num=DISK_LOAD;
+	currPID=[SYSTEM_STATUS_TABLE+1];
+	page_no=[PTBR+i];
+	block_no=[INODE_TABLE+inode_index*16+j];
+	call DEVICE_MANAGER;
+	multipop(R1,R2,R3,R4,R5,R6,R7);
+
+	i=i+2;
+	j=j+1;
+endwhile;
+
+// initializing per process resource table
+
+i = ([PROCESS_TABLE + currPID*16 + 11] +1)*512 - 16 ;
+while(i < ( [PROCESS_TABLE + currPID*16 + 11] +1)*512 ) do
+	[i] = -1;
+	i = i + 2;
+endwhile;
+
+SP = 8 * 512 ;
+[[PTBR+16] * 512] = [[PTBR+8] * 512 + 1];
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
+breakpoint;
+ireturn;

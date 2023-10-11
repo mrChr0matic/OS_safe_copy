@@ -1,0 +1,16 @@
+MOV R0,1
+MOV R16,R0
+MOV R10,1
+MOV R9,21
+
+Loop:
+    EQ R10,R9
+    JNZ R10,EXIT
+    PORT P1,R16
+    OUT
+    INR R16
+    MOV R10,R16
+    JMP Loop
+
+EXIT:
+    HALT    
