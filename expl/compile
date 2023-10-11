@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+
+
+for FILE in ./samples/*.expl; do
+    echo $FILE;
+    ./expl $FILE;
+done

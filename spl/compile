@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+
+
+for FILE in ./spl_progs/*.spl; do
+    echo $FILE;
+    ./spl $FILE;
+done

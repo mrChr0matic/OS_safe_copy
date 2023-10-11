@@ -1,0 +1,26 @@
+type
+    Student{
+        str name;
+        int age;
+    }
+endtype
+
+int main()
+{
+    decl
+        Student S;
+        int n;
+        str nm;
+        int temp;
+    enddecl
+
+    begin   
+        temp=initialize();
+        S=alloc();
+        S.name="Rajni";
+        S.age=1000;
+        temp=exposcall("Write",-2,S.name);
+        temp=exposcall("Write",-2,S.age);
+        return 0;
+    end
+}
