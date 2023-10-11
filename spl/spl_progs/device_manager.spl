@@ -25,6 +25,7 @@ if(func_num==2) then
 	return;
 endif;
 
+// terminal write
 if ( func_num == 3 ) then
 	// acquire terminal
 	alias word R3;
@@ -43,7 +44,7 @@ if ( func_num == 3 ) then
 	multipop(R1,R2);
 endif;
 
-
+// terminal_read
 if ( func_num == 4 ) then
 	// acquire terminal
 	alias word_addr R3;
