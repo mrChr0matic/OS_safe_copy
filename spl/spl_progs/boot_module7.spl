@@ -30,6 +30,8 @@ loadi(59,3);	// inode_table
 loadi(60,4);
 loadi(6,19);	// disk_int_handler	
 loadi(7,20);
+loadi(2,15);	// exception_handler   
+loadi(3,16);
 
 // setting up page table for init process
 PTBR = PAGE_TABLE_BASE+20;
@@ -74,8 +76,20 @@ PTBR = PAGE_TABLE_BASE+20;
 
 [76 * 512] = [65 * 512 + 1];
 
+// initializing disk map entry for init process
+[DISK_MAP_TABLE + 10*1 + 0] = 80; //user are page
+[DISK_MAP_TABLE + 10*1 + 1] = -1;
+[DISK_MAP_TABLE + 10*1 + 2] = 78; //Heap
+[DISK_MAP_TABLE + 10*1 + 3] = 79;
+[DISK_MAP_TABLE + 10*1 + 4] = 65; //code
+[DISK_MAP_TABLE + 10*1 + 5] = 66;
+[DISK_MAP_TABLE + 10*1 + 6] = -1;
+[DISK_MAP_TABLE + 10*1 + 7] = -1;
+[DISK_MAP_TABLE + 10*1 + 8] = 76; //stack
+[DISK_MAP_TABLE + 10*1 + 9] = 77;
 
 // setting all other states as terminated
+
 alias pid R0;
 pid = 2;
 while ( pid < 16) do
@@ -83,7 +97,14 @@ while ( pid < 16) do
 	pid = pid +1;
 endwhile;
 
+
+// initializing terminal status table and disk status table
+
 [TERMINAL_STATUS_TABLE] = 0;
+[DISK_STATUS_TABLE] = 0;
+
+
+// initializing memory free list
 
 alias page R0;
 page = 76 ;
@@ -98,15 +119,19 @@ while(page < 128) do
     page = page + 1;
 endwhile;
 
+// initializing mem free count and wait mem count
+
 [SYSTEM_STATUS_TABLE + 2] = 45;
 [SYSTEM_STATUS_TABLE + 3] = 0;
-[DISK_STATUS_TABLE]=0;
+
+
+// setting per process resource table for init
 
 alias i R0;
-i = ([PROCESS_TABLE + 16 + 11] +1)*512 - 16 ;		//initialize per process table
-while(i < ( [PROCESS_TABLE + 16 + 11] +1)*512 ) do
-	[i] = -1;
-	i = i + 2;
+i = 496 ;
+while(i < 512 ) do
+	[80*512 + i] = -1;
+	i = i + 1;
 endwhile;
 
 return;

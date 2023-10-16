@@ -23,6 +23,7 @@ if ( func_num == 1 ) then
         free_page = free_page + 1;
     endwhile;
     [MEMORY_FREE_LIST + free_page] = 1;
+    return;
 endif;
 
 
@@ -42,8 +43,51 @@ if ( func_num == 2 ) then
         endif;
         i = i + 1;
     endwhile;
-	
+	return;
 endif;
 
-breakpoint;
-return;
+// release block
+if(func_num==4) then
+    alias block_no R2;
+    alias currentPID R3;
+    [DISK_FREE_LIST+block_no]=[DISK_FREE_LIST+block_no]-1;
+    return;
+endif;
+
+// get code page
+if(func_num==5) then
+    alias block_no R2;
+    alias i R3;
+    alias j R4;
+    alias page_no R5;
+    i=0;
+    while(i<16) do
+        j=4;
+        while(j<8) do
+            if([DISK_MAP_TABLE+10*i+j]==block_no) then
+                page_no=[PAGE_TABLE_BASE+20*i+8+2*(j-4)];
+                if(page_no!=-1) then
+                    [MEMORY_FREE_LIST+page_no]=[MEMORY_FREE_LIST+page_no]+1;
+                    R0=page_no;
+                    return;
+                endif;
+            endif;
+            j=j+1;
+        endwhile;
+        i=i+1;
+    endwhile;
+    multipush(R1,R2);
+    R1=1;
+    call MEMORY_MANAGER;
+    page_no=R0;
+    multipop(R1,R2);
+    multipush(R1,R2,R5);
+    R1=2;
+    R4=R2;
+    R2=[SYSTEM_STATUS_TABLE+1];
+    R3=page_no;
+    call DEVICE_MANAGER;
+    multipop(R1,R2,R5);
+    R0=page_no;
+    return;
+endif;

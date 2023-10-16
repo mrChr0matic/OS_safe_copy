@@ -54,21 +54,21 @@ PTBR = PAGE_TABLE_BASE+20*[SYSTEM_STATUS_TABLE + 1];
 [PTBR+2] = 64;
 [PTBR+3] = "0100";
 
-multipush(R0);
-func_num = 1;
+multipush(R0,R1,R2,R3);
+// func_num = 1;
 
-call MEMORY_MANAGER;
-
-//Heap
-[PTBR+4] = R0;
-[PTBR+5] = "0110";
-
-func_num = 1;
-call MEMORY_MANAGER;
+// call MEMORY_MANAGER;
 
 //Heap
-[PTBR+6] = R0;
-[PTBR+7] = "0110";
+[PTBR+4] = -1;
+[PTBR+5] = "0000";
+
+// func_num = 1;
+// call MEMORY_MANAGER;
+
+//Heap
+[PTBR+6] = -1;
+[PTBR+7] = "0000";
 
 func_num = 1;
 call MEMORY_MANAGER;
@@ -90,49 +90,50 @@ multipop(R0);
 alias blocks_occupied R4;
 blocks_occupied = [INODE_TABLE + inode_index*16 + 2]/512 + 1;
 
-alias i R5;
-i = 8;
-while( blocks_occupied > 0 ) do
-	multipush(R4,R5);
-	func_num = 1;
-	call MEMORY_MANAGER;
-	multipop(R4,R5);
-	[PTBR+i] = R0;
-	[PTBR+i+1] = "0100";
-	blocks_occupied = blocks_occupied -1;
-	i = i + 2;
-endwhile;
+// code
+multipush(R0,R1,R2,R3,R4,R5,R6,R7);
+alias block_no R2;
+func_num=5;
+block_no=[INODE_TABLE+inode_index*16+8];
+call MEMORY_MANAGER;
+[PTBR+8]=R0;
+[PTBR+9]="0110";
 
-while ( i < 16) do
-	[PTBR+i] = -1;
-	[PTBR+i+1] = "0000";
-	i = i + 2;
+alias i R2;
+i=1;
+while(i<4) do
+	[PTBR + 8 + 2*i] = -1;
+	[PTBR + 9 + 2*i] = "0000";
+i = i + 1;
 endwhile;
+multipop(R0, R1, R2, R3, R4, R5, R6,R7);
+
+// Initialize Disk Map Table
+alias currPID R2;
+alias i R1;
+R2=[SYSTEM_STATUS_TABLE+1];
+i=2;
+while(i<10) do
+if(i==2 || i==3) then // Heap
+	[DISK_MAP_TABLE + currPID*10 + i] = -1;
+else
+if(i==8 || i==9) then // Stack
+	[DISK_MAP_TABLE + currPID*10 + i] = -1;
+else
 breakpoint;
+if((i-4)<blocks_occupied) then // Code
+	[DISK_MAP_TABLE + currPID*10  + i] = [INODE_TABLE + inode_index*16 + 8 + (i-4)];
 
-// loading code from disk to memory
-alias j R7;
-i = 8;
-j = 8;
-while ( i < 16 &&  [PTBR+i] != -1 ) do
-	multipush(R1,R2,R3,R4,R5,R6,R7);
-	alias currPID R2;
-	alias page_no R3;
-	alias block_no R4;
-
-	func_num=DISK_LOAD;
-	currPID=[SYSTEM_STATUS_TABLE+1];
-	page_no=[PTBR+i];
-	block_no=[INODE_TABLE+inode_index*16+j];
-	call DEVICE_MANAGER;
-	multipop(R1,R2,R3,R4,R5,R6,R7);
-
-	i=i+2;
-	j=j+1;
+else
+	[DISK_MAP_TABLE + currPID*10 + i] = -1;
+endif;
+endif;
+endif;
+i = i + 1;
 endwhile;
+
 
 // initializing per process resource table
-
 i = ([PROCESS_TABLE + currPID*16 + 11] +1)*512 - 16 ;
 while(i < ( [PROCESS_TABLE + currPID*16 + 11] +1)*512 ) do
 	[i] = -1;
