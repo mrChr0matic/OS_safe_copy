@@ -3,6 +3,29 @@
 alias fnNumber R1;
 alias currentPID R2;
 
+// GET_PCB_ENTRY
+if(fnNumber==1) then
+	currentPID=0;
+	while(currentPID<16) do
+		if([PROCESS_TABLE+currentPID*16+4]==TERMINATED) then
+			break;
+		endif;
+		currentPID=currentPID+1;
+	endwhile;
+
+	if(currentPID==16) then
+		R0=-1;
+		return;
+	endif;
+
+	[PROCESS_TABLE+currentPID*16+1]=currentPID;
+	[PROCESS_TABLE+currentPID*16+4]=ALLOCATED;
+	[PROCESS_TABLE+currentPID*16+14]=PAGE_TABLE_BASE+currentPID*20;
+	[PROCESS_TABLE+currentPID*16+15]=10;
+	R0=currentPID;
+	return;
+endif;
+
 // FREE USER AREA PAGE
 if(fnNumber == 2) then
 	alias userAreaPage R3;

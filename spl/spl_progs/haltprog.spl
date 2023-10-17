@@ -5,6 +5,12 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16) + 11] * 512 - 1;
 backup;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = TERMINATED;
 
+multipush(R0);
+R1=3;
+R2=[SYSTEM_STATUS_TABLE+1];
+call PROCESS_MANAGER;
+multipop(R0);
+
 alias newPID R2;
 alias currPID R3;
 currPID = [SYSTEM_STATUS_TABLE + 1];
