@@ -41,6 +41,21 @@ endif;
 
 // EXIT PROCESS
 if(fnNumber == 3) then
+
+	if([PROCESS_TABLE+currentPID*16+9]!=9) then	
+		alias i R3;
+		i=0;
+		while(i<16) do
+			if([PROCESS_TABLE+i*16+4]==WAIT_PROCESS && [PROCESS_TABLE+i*16+5	]==currentPID) then
+				[PROCESS_TABLE+i*16+4]=READY;
+			endif;
+			if([PROCESS_TABLE+i*16+2]==currentPID) then	
+				[PROCESS_TABLE+i*16+2]=-1;
+			endif;
+			i=i+1;
+		endwhile;
+	endif;
+
 	multipush(R1, R2);
 	R1 = 4;
 	R2 = currentPID;

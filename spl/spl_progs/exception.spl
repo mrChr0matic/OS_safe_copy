@@ -10,7 +10,7 @@ currentPID=[SYSTEM_STATUS_TABLE+1];
 multipush(EIP);
 
 if(EC!=0 || (userSP==(PTLR*512)-1)) then
-    print "Not page fault";
+    print EIP;
     multipush(R0,R1);
     R1=3;
     R2=currentPID;
