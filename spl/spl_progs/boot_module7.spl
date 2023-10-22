@@ -36,6 +36,10 @@ loadi(18,31);	// int8
 loadi(19,32);
 loadi(24,37);	// int11
 loadi(25,38);
+loadi(28,41);	// int13
+loadi(29,42);
+loadi(30,43);	// int14
+loadi(31,44);
 loadi(32,45);	// int15
 loadi(33,46);
 
@@ -97,9 +101,17 @@ PTBR = PAGE_TABLE_BASE+20;
 // setting all other states as terminated
 
 alias pid R0;
+alias j R1;
 pid = 2;
 while ( pid < 16) do
 	[PROCESS_TABLE + pid*16 + 4] = TERMINATED;
+	j = 0;
+	while ( j <= 18) do
+		[PAGE_TABLE_BASE + pid*20 + j] = -1;
+		[PAGE_TABLE_BASE + pid*20 + j + 1] = "0000";
+		j = j + 2;
+	endwhile;
+
 	pid = pid +1;
 endwhile;
 
@@ -107,7 +119,7 @@ endwhile;
 // initializing terminal status table and disk status table
 
 [TERMINAL_STATUS_TABLE] = 0;
-[DISK_STATUS_TABLE] = 0;
+[DISK_STATUS_TABLE] = 0; 
 
 
 // initializing memory free list
@@ -137,6 +149,13 @@ alias i R0;
 i = 496 ;
 while(i < 512 ) do
 	[80*512 + i] = -1;
+	i = i + 1;
+endwhile;
+
+i = 0;
+while ( i < MAX_SEM_COUNT ) do
+	[SEMAPHORE_TABLE + i*4 + 0] = -1;
+	[SEMAPHORE_TABLE + i*4 + 1] = 0;
 	i = i + 1;
 endwhile;
 

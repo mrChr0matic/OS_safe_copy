@@ -1,26 +1,30 @@
 //Fork system call
+
 breakpoint;
 
 alias userSP R0;
 userSP = SP;
 
-[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1] + 9] = 8;
-[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1] + 13] = SP;
-SP = [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1] + 11]*512 -1;
+alias parentProcessTable R4;
+parentProcessTable = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16;
+
+[parentProcessTable + 9 ] = 8;
+[parentProcessTable + 13] = SP;
+SP = [parentProcessTable + 11]*512 -1;
 
 // call get pcb entry
-multipush(R0);
+multipush(R0,R4);
 R1 = GET_PCB_ENTRY;
 call PROCESS_MANAGER;
 R1 = R0;
-multipop(R0);
-
+multipop(R0,R4);
+print R1;
 alias childPID R1;
 if( childPID == -1 ) then
 	alias ret R2;
 	ret = ( [PTBR + 2*((userSP-1)/512)]*512 ) + (userSP-1)%512;
 	[ret] = -1;
-	[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1] + 9] = 0;
+	[parentProcessTable + 9] = 0;
 	ireturn;
 endif;
 
@@ -29,19 +33,19 @@ endif;
 
 if( [PTBR + 4] == -1 ) then
 	//call get free page to get the heap pages
-	multipush(R0,R1);
+	multipush(R0,R1,R4);
 	R1 = GET_FREE_PAGE;
 	call MEMORY_MANAGER;
 	[PTBR + 4] = R0;
 	[PTBR + 5] = "0110";
-	multipop(R0, R1);
+	multipop(R0, R1,R4);
 
-	multipush(R0, R1);
+	multipush(R0, R1,R4);
 	R1 = GET_FREE_PAGE;
 	call MEMORY_MANAGER;
 	[PTBR + 6] = R0;
 	[PTBR + 7] = "0110";
-	multipop(R0, R1);
+	multipop(R0, R1,R4);
 
 endif;
 
@@ -78,12 +82,12 @@ multipop(R0, R1, R2, R3, R4, R5);
 
 
 //initialise the process table of child
-
-[childProcessTable + 1] = [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 1]; // user id
-[childProcessTable + 6] = [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 6]; // swap flag
-[childProcessTable + 10] = [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 10];  // user area swap status
-[childProcessTable + 7] = [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 7]; // inode index
-[childProcessTable + 13] = [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 13]; // uptr
+[childProcessTable + 1] = childPID;
+[childProcessTable + 3] = [parentProcessTable + 3]; // user id
+[childProcessTable + 6] = [parentProcessTable + 6]; // swap flag
+[childProcessTable + 10] = [parentProcessTable + 10];  // user area swap status
+[childProcessTable + 7] = [parentProcessTable + 7]; // inode index
+[childProcessTable + 13] = [parentProcessTable + 13]; // uptr
 [childProcessTable + 9] = 0; // mode flag
 [childProcessTable + 12] = 0; // kptr
 [childProcessTable + 0] = 0; // tick
@@ -99,32 +103,32 @@ multipop(R0, R1, R2, R3, R4, R5);
 
 alias i R3;
 i = 0;
-while( i < 16 ) do
-	[[childProcessTable + 11]*512 + 511 - i] = [[PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 11]*512 + 511 - i];
+while( i < 8 ) do
+	[[childProcessTable + 11]*512 + 496 + i*2] = [[parentProcessTable + 11]*512 + 496 + i*2];
+	[[childProcessTable + 11]*512 + 496 + i*2 + 1] = [[parentProcessTable + 11]*512 + 496 + i*2 + 1];
+	if( ([ [childProcessTable + 11]*512 + 496 + i*2] == SEMAPHORE) ) then
+		//incrementing semaphore table process count of the shared semaphores
+		[SEMAPHORE_TABLE + [ [childProcessTable + 11]*512 + 496 + i*2]*4 + 1] = [SEMAPHORE_TABLE + [ [childProcessTable + 11]*512 + 496 + i*2]*4 + 1] + 1;
+	endif;
 	i = i + 1;
 endwhile;
 
 //copy the per process disk map table of parent to child
 
 i = 2;
-while( (i <= 7) ) do
-	[DISK_MAP_TABLE + childPID*10 + i] = [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE+1]*10 + i];
+while( i <= 7 ) do
+	if( i == 0 || i == 1 || i == 8 || i == 9 ) then
+		[DISK_MAP_TABLE + childPID*10 + i] = -1;
+	else
+		[DISK_MAP_TABLE + childPID*10 + i] = [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE+1]*10 + i];
+	endif;
 	i = i + 1;
 endwhile;
-
-
-//user area page and stack are invalid for child
-
-[DISK_MAP_TABLE + childPID*10 + 0] = -1;
-[DISK_MAP_TABLE + childPID*10 + 1] = -1;
-[DISK_MAP_TABLE + childPID*10 + 8] = -1;
-[DISK_MAP_TABLE + childPID*10 + 9] = -1;
-
 
 //Initialize the page table of child
 
 i = 0;
-while( (i <= 7) ) do
+while( i <= 7 ) do
 	[childPTBR + i*2] = [PTBR + i*2];
 	[MEMORY_FREE_LIST + [childPTBR + i*2]] = 1 + [MEMORY_FREE_LIST + [childPTBR + i*2]];
 	[childPTBR + i*2+1] = [PTBR + i*2+1];
@@ -168,9 +172,8 @@ ret = ( [[childProcessTable + 14] + 2*((userSP-1)/512)]*512 ) + (userSP-1)%512;
 
 
 //switch to user stack of parent
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 0;
-SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13];
+[parentProcessTable + 9] = 0;
+SP = [parentProcessTable+ 13];
 
 breakpoint;
-
 ireturn;

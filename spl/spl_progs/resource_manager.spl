@@ -6,12 +6,52 @@ if(functionNum == 3) then
 	while([DISK_STATUS_TABLE + 0] == 1) do
 		[PROCESS_TABLE + currentPID*16 + 4] = WAIT_DISK;
 		multipush(R1, R2);
-		call SCHEDULER;
+		call MOD_5;
 		multipop(R1, R2);
 	endwhile;
 	[DISK_STATUS_TABLE + 0] = 1;
 	[DISK_STATUS_TABLE + 4] = currentPID;
 endif;
+
+
+//AcquireSemaphore
+if(functionNum == 6) then
+  alias i R3;
+  i = 0;
+  while([SEMAPHORE_TABLE + 4*i + 1] != 0) do
+    i = i + 1;
+  endwhile;
+  if(i==32) then
+    R0 = -1;
+    return;
+  endif;
+  [SEMAPHORE_TABLE + 4*i + 1] = 1;
+  [SEMAPHORE_TABLE + 4*i] = -1;
+  R0 = i;
+  return;
+endif;
+
+//Release Semaphore
+if(functionNum == 7) then
+  if([SEMAPHORE_TABLE + 4*R2] == R3) then
+    [SEMAPHORE_TABLE + 4*R2] = -1;
+    alias i R4;
+    i=1;
+    while(i<16) do
+      alias procTab R5;
+      procTab = PROCESS_TABLE + 16*i;
+      if([procTab + 4] == WAIT_SEMAPHORE && [procTab + 5] == R2) then
+        [procTab + 4] = READY;
+        [procTab + 5] = -1;
+      endif;
+      i = i + 1;
+    endwhile;
+  endif;
+  [SEMAPHORE_TABLE + 4*R2 + 1] = [SEMAPHORE_TABLE + 4*R2 + 1] -1;
+  R0 = 0;
+  return;
+endif;
+
 
 
 
