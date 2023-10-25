@@ -13,6 +13,61 @@ if(functionNum == 3) then
 	[DISK_STATUS_TABLE + 4] = currentPID;
 endif;
 
+// acquire inode fno:4
+if (functionNum == ACQUIRE_INODE) then
+	alias inodeIdx R2;
+	alias PID R3;
+	print inodeIdx;
+
+	//busy wait
+	while( ([FILE_STATUS_TABLE + inodeIdx*4 + 0] != -1) ) do
+		[PROCESS_TABLE + PID*16 + 4] = WAIT_FILE;
+		[PROCESS_TABLE + PID*16 + 5] = inodeIdx;
+		multipush(R0, R1, R2, R3);
+		call SCHEDULER;
+		multipop(R0, R1, R2, R3);
+	endwhile;
+
+	//if file has already been deleted
+	if([INODE_TABLE + inodeIdx*16 + 1] == -1 ) then
+		R0 = -1;
+		return;
+	endif;
+
+	//lock the inode entry
+	[FILE_STATUS_TABLE + inodeIdx*4 + 0] = PID;
+	R0 = 0;
+	return;
+endif;
+
+// release inode fno:5
+if (functionNum == RELEASE_INODE) then
+	alias inodeIdx R2;
+	alias PID R3;
+
+	if([FILE_STATUS_TABLE + inodeIdx*4 + 0] != PID ) then
+		// PID is not matching the locking pid
+		R0 = -1;
+		return;
+	endif;
+
+	//unlock the file
+	[FILE_STATUS_TABLE + inodeIdx*4 + 0] = -1;
+
+	//loop through the process and wake them up
+	alias i R4;
+	i = 0;
+	while( i < MAX_PROC_NUM ) do
+		if( ([PROCESS_TABLE + i*16 + 4] == WAIT_FILE) && ([PROCESS_TABLE + i*16 + 5] == inodeIdx) ) then
+			[PROCESS_TABLE + i*16 + 4] = READY;
+		endif;
+		i = i + 1;
+	endwhile;
+	
+	R0 = 0;
+	return;
+endif;
+
 
 //AcquireSemaphore
 if(functionNum == 6) then
