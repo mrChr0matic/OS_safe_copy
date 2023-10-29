@@ -32,6 +32,10 @@ loadi(6,19);	// disk_int_handler
 loadi(7,20);
 loadi(2,15);	// exception_handler   
 loadi(3,16);
+loadi(46,59);	// file_manager
+loadi(47,60);
+loadi(12,25);	// int5
+loadi(13,26);
 loadi(18,31);	// int8
 loadi(19,32);
 loadi(24,37);	// int11
@@ -44,7 +48,7 @@ loadi(32,45);	// int15
 loadi(33,46);
 loadi(10,23);	// int4
 loadi(11,24);
-loadi(62, 5); //rootfile
+
 
 // setting up page table for init process
 PTBR = PAGE_TABLE_BASE+20;
@@ -124,6 +128,7 @@ endwhile;
 
 [TERMINAL_STATUS_TABLE] = 0;
 [DISK_STATUS_TABLE] = 0; 
+[SYSTEM_STATUS_TABLE] = 1; 
 
 
 // initializing memory free list
@@ -171,6 +176,14 @@ i = 0;
 while( i < MAX_FILE_NUM ) do
 	[FILE_STATUS_TABLE + i*4 + 0] = -1;
 	[FILE_STATUS_TABLE + i*4 + 1] = -1;
+	i = i + 1;
+endwhile;
+
+// initialize open file table
+i = 0;
+while( i < MAX_OPENFILE_NUM ) do
+	[OPEN_FILE_TABLE + i*4 + 0] = -1;
+	[OPEN_FILE_TABLE + i*4 + 1] = 0;
 	i = i + 1;
 endwhile;
 
