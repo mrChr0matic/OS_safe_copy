@@ -5,6 +5,14 @@ load --init ../expl/samples/shell.xsm
 load --exec ../expl/samples/s_msort.xsm
 load --exec ../expl/samples/stg24_a1.xsm
 load --exec ../expl/samples/stg24_a2.xsm
+load --exec ../expl/samples/cp.xsm
+load --exec ../expl/samples/rm.xsm
+load --exec ../expl/samples/cat.xsm
+load --exec ../expl/samples/ls.xsm
+load --exec ../expl/samples/stg25_a1.xsm
+load --exec ../expl/samples/stg25_a2.xsm
+load --exec ../expl/samples/stg25_a3.xsm
+load --exec ../expl/samples/stg25_a4.xsm
 load --module 0 ../spl/spl_progs/resource_manager.xsm
 load --module 1 ../spl/spl_progs/process_manager.xsm
 load --module 2 ../spl/spl_progs/memory_manager.xsm

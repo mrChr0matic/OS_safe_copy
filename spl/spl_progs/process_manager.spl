@@ -137,7 +137,6 @@ if ( func_num == FREE_PAGE_TABLE ) then
             call MEMORY_MANAGER;
 
             multipop(R1,R2,R3,R4);
-            // print "aagaya";
             [ptbr + i] = -1;
             [ptbr + i + 1] = "0000";
         endif;
@@ -160,7 +159,60 @@ if ( func_num == FREE_PAGE_TABLE ) then
         i = i + 1;
     endwhile;
 
+	breakpoint;
+	return;
 	
+endif;
+
+
+
+if (func_num == KILL_ALL) then
+    alias pid R2;
+
+    alias counter R5;
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16 + 1] != -1) then
+            multipush (R1, R2, R5);
+            R1 = ACQUIRE_INODE;
+            R3 = pid;
+            R2 = counter;
+            call RESOURCE_MANAGER;
+            multipop  (R1, R2, R5);
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    // breakpoint;
+    counter = 2;
+    while (counter < MAX_PROC_NUM) do
+
+        if (counter != pid && [PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+            multipush (R1, R2, R5);
+            R1 = EXIT_PROCESS;
+            R2 = pid;
+            call PROCESS_MANAGER;
+            multipop  (R1, R2, R5);
+        endif;
+
+        counter = counter + 1;
+    endwhile;
+
+    // breakpoint;
+    counter = 0;
+    while (counter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + counter*16] != -1) then
+            multipush (R1, R2, R5);
+            R1 = RELEASE_INODE;
+            R3 = pid;
+            R2 = counter;
+            multipop  (R1, R2, R5);
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    // breakpoint;
+    return;
 endif;
 
 breakpoint;

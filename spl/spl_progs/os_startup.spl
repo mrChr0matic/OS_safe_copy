@@ -52,5 +52,5 @@ SP = 8*512;
 [81 * 512] = [69 * 512 + 1];
 [SYSTEM_STATUS_TABLE + 1] = 0;
 
-breakpoint;
+//breakpoint;
 ireturn;

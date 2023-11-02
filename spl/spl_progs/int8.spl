@@ -1,6 +1,6 @@
 //Fork system call
 
-breakpoint;
+//breakpoint;
 
 alias userSP R0;
 userSP = SP;
@@ -181,5 +181,5 @@ ret = ( [[childProcessTable + 14] + 2*((userSP-1)/512)]*512 ) + (userSP-1)%512;
 [parentProcessTable + 9] = 0;
 SP = [parentProcessTable+ 13];
 
-breakpoint;
+//breakpoint;
 ireturn;

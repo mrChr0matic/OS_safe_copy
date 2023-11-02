@@ -1,4 +1,4 @@
-breakpoint;
+
 
 alias userSP R0;
 userSP = SP;
@@ -120,7 +120,7 @@ else
 if(i==8 || i==9) then // Stack
 	[DISK_MAP_TABLE + currPID*10 + i] = -1;
 else
-breakpoint;
+
 if((i-4)<blocks_occupied) then // Code
 	[DISK_MAP_TABLE + currPID*10  + i] = [INODE_TABLE + inode_index*16 + 8 + (i-4)];
 
@@ -144,5 +144,5 @@ SP = 8 * 512 ;
 [[PTBR+16] * 512] = [[PTBR+8] * 512 + 1];
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
 
-breakpoint;
+
 ireturn;

@@ -1,7 +1,63 @@
-breakpoint;
-alias functionNum R1;
 
-if (functionNum == BUFFERED_READ) then
+alias func_num R1;
+
+
+if (func_num == BUFFERED_WRITE) then
+    alias diskBlockNumber R2;
+    alias offset R3;
+    alias word R4;
+
+    alias bufferIndex R6;
+    bufferIndex = diskBlockNumber % 4;
+
+    multipush (R1, R2, R3, R4, R6);
+    R1 = ACQUIRE_BUFFER;
+    R2 = bufferIndex;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+    multipop  (R1, R2, R3, R4, R6);
+
+    if ([BUFFER_TABLE + bufferIndex*4] != diskBlockNumber) then
+        if ([BUFFER_TABLE + bufferIndex*4 + 1] == 1) then
+            multipush (R1, R2, R3, R4, R6);
+            R1 = DISK_STORE;
+            R2 = [SYSTEM_STATUS_TABLE+1];
+            R3 = BUFFER_BASE + bufferIndex;
+            R4 = [BUFFER_TABLE + bufferIndex*4];
+            call DEVICE_MANAGER;
+            multipop  (R1, R2, R3, R4, R6);
+
+            [BUFFER_TABLE + bufferIndex*4 + 1] = 0;
+        endif;
+
+        multipush (R1, R2, R3, R4, R6);
+        R1 = DISK_LOAD;
+        R4 = diskBlockNumber;
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        R3 = BUFFER_BASE + bufferIndex;
+        call DEVICE_MANAGER;
+        multipop  (R1, R2, R3, R4, R6);
+
+        [BUFFER_TABLE + bufferIndex*4] = diskBlockNumber;
+    endif;
+
+    [(BUFFER_BASE + bufferIndex)*512 + offset] = word;
+    [BUFFER_TABLE + bufferIndex*4 + 1] = 1;
+
+    multipush (R1, R2, R3, R4, R6);
+    R1 = RELEASE_BUFFER;
+    R2 = bufferIndex;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+    multipop  (R1, R2, R3, R4, R6);
+
+    // 
+    return;
+endif;
+
+
+
+if (func_num == BUFFERED_READ) then
     alias diskBlockNumber R2;
     alias offset R3;
     alias wordAddress R4;
@@ -42,18 +98,21 @@ if (functionNum == BUFFERED_READ) then
 
     [[PTBR + 2*(wordAddress/512)]*512 + wordAddress%512] = [(BUFFER_BASE + bufferIndex)*512 + offset];
 
-    multipush (R1, R2, R3, R4, R6);
+    multipush(R1, R2, R3, R4, R6);
     R1 = RELEASE_BUFFER;
     R2 = bufferIndex;
     R3 = [SYSTEM_STATUS_TABLE+1];
     call RESOURCE_MANAGER;
-    multipop  (R1, R2, R3, R4, R6);
+    multipop(R1, R2, R3, R4, R6);
 
-    breakpoint;
+    
     return;
 endif;
 
-if (functionNum == OPEN) then
+
+
+
+if (func_num == OPEN) then
     alias fileName R2;
     
     alias inodeIndex R3;
@@ -69,7 +128,7 @@ if (functionNum == OPEN) then
 
     if (counter == MAX_FILE_NUM) then
         R0 = -1;
-        breakpoint;
+        
         return;
     endif;
 
@@ -81,7 +140,7 @@ if (functionNum == OPEN) then
     multipop  (R1, R2, R3);
 
     if (R0 == -1) then
-        breakpoint;
+        
         return;
     endif;
 
@@ -94,7 +153,7 @@ if (functionNum == OPEN) then
         multipop  (R1, R2, R3);
 
         R0 = -1;
-        breakpoint;
+        
         return;
     endif;
 
@@ -110,7 +169,7 @@ if (functionNum == OPEN) then
 
     if (counter == MAX_OPENFILE_NUM) then
         R0 = -2;
-        breakpoint;
+        
         return;
     endif;
 
@@ -138,11 +197,15 @@ if (functionNum == OPEN) then
     multipop (R1, R2, R3, R4, R6);
 
     R0 = openFileTableIndex;
-    breakpoint;
+    
     return;
 endif;
 
-if (functionNum == CLOSE) then
+
+
+
+
+if (func_num == CLOSE) then
     alias openFileTableIndex R2;
     alias inodeIndex R4;
     inodeIndex = [openFileTableIndex];
@@ -166,6 +229,6 @@ if (functionNum == CLOSE) then
     endif;
 
     R0 = 0;
-    breakpoint;
+    
     return;
 endif;

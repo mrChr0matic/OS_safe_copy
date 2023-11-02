@@ -56,6 +56,32 @@ if ( func_num == RELEASE_PAGE ) then
 endif;
 
 
+
+if (func_num == GET_FREE_BLOCK) then
+
+    alias free_block R0;
+    free_block = DISK_FREE_AREA;
+
+    while (free_block < DISK_SWAP_AREA) do
+        if ([DISK_FREE_LIST + free_block] == 0) then
+            [DISK_FREE_LIST + free_block] = 1;
+            R0 = free_block;
+            break;
+        endif;
+        free_block = free_block + 1;
+    endwhile;
+
+    if( free_block == DISK_SWAP_AREA ) then
+        R0 = -1;
+    endif;
+
+    breakpoint;
+    return;
+endif;
+
+
+
+
 if ( func_num == RELEASE_BLOCK ) then           // release block
 	alias block_num R2;
     alias pid R3;
@@ -65,6 +91,8 @@ if ( func_num == RELEASE_BLOCK ) then           // release block
     return;
 
 endif;
+
+
 
 if ( func_num == GET_CODE_PAGE ) then           // get code page
 

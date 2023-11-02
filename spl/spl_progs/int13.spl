@@ -1,4 +1,4 @@
-breakpoint;
+//breakpoint;
 
 alias userSP R0;
 userSP = SP;
@@ -131,5 +131,5 @@ if ( sysCallNum == INT_SEMRELEASE ) then
 	ireturn;
 
 endif;
-breakpoint;
+//breakpoint;
 ireturn;

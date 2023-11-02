@@ -1,4 +1,4 @@
-breakpoint;
+
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13]=SP;  // switching to kernel stack of current process;
 SP= [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512-1;  // set SP to beginning of user area page
 backup;
@@ -13,5 +13,5 @@ call SCHEDULER;   // calling scheduler
 restore;
 SP=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];   // make SP to new SP of new process
 [PROCESS_TABLE +[SYSTEM_STATUS_TABLE + 1]*16 + 9]=0;  //MODE flag =0 
-breakpoint;
+
 ireturn;

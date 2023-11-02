@@ -48,6 +48,7 @@ loadi(32,45);	// int15
 loadi(33,46);
 loadi(10,23);	// int4
 loadi(11,24);
+loadi(62,5); //root
 
 
 // setting up page table for init process

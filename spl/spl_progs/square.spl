@@ -6,6 +6,6 @@ while(counter<=5) do
     alias square R1;
     square=counter*counter;
     sum=sum+square;
-    breakpoint;
+    //breakpoint;
     counter=counter+1;
 endwhile;
