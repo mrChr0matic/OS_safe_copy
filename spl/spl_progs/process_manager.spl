@@ -166,54 +166,45 @@ endif;
 
 
 
-if (func_num == KILL_ALL) then
-    alias pid R2;
+if(func_num == KILL_ALL) then
+  alias i R5;
+  i = 0;
+  while(i<MAX_FILE_NUM) do
+    if([INODE_TABLE + 16*i + 1] != -1) then
+      multipush(R1, R2, R3, R4, R5);
+      R1 = ACQUIRE_INODE;
+      R3 = currPID;
+      R2 = i;
+      call RESOURCE_MANAGER;
+      multipop(R1, R2, R3, R4, R5);
+    endif;
+  i = i + 1;
+  endwhile;
 
-    alias counter R5;
-    counter = 0;
-    while (counter < MAX_FILE_NUM) do
-        if ([INODE_TABLE + counter*16 + 1] != -1) then
-            multipush (R1, R2, R5);
-            R1 = ACQUIRE_INODE;
-            R3 = pid;
-            R2 = counter;
-            call RESOURCE_MANAGER;
-            multipop  (R1, R2, R5);
-        endif;
-        counter = counter + 1;
-    endwhile;
+  i = 2;
+  while(i<MAX_PROC_NUM) do
+    if([PROCESS_TABLE + 16*i + 1] != currPID && [PROCESS_TABLE + 16*i + 4] != TERMINATED) then
+      multipush(R1, R2, R3, R4, R5);
+      R1 = EXIT_PROCESS;
+      R2 = i;
+      call PROCESS_MANAGER;
+      multipop(R1, R2, R3, R4, R5);
+    endif;
+    i = i + 1;
+  endwhile;
 
-    // breakpoint;
-    counter = 2;
-    while (counter < MAX_PROC_NUM) do
+  i = 0;
+  while(i<MAX_FILE_NUM) do
+    if([INODE_TABLE + 16*i + 1] != -1) then
+      multipush(R1, R2, R3, R4, R5);
+      R1 = RELEASE_INODE;
+      R3 = currPID ;
+      R2 = i;
+      call RESOURCE_MANAGER;
+      multipop(R1, R2, R3, R4, R5);
+    endif;
+  i = i + 1;
+  endwhile;
 
-        if (counter != pid && [PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
-            multipush (R1, R2, R5);
-            R1 = EXIT_PROCESS;
-            R2 = pid;
-            call PROCESS_MANAGER;
-            multipop  (R1, R2, R5);
-        endif;
-
-        counter = counter + 1;
-    endwhile;
-
-    // breakpoint;
-    counter = 0;
-    while (counter < MAX_FILE_NUM) do
-        if ([INODE_TABLE + counter*16] != -1) then
-            multipush (R1, R2, R5);
-            R1 = RELEASE_INODE;
-            R3 = pid;
-            R2 = counter;
-            multipop  (R1, R2, R5);
-        endif;
-        counter = counter + 1;
-    endwhile;
-
-    // breakpoint;
-    return;
+  return;
 endif;
-
-breakpoint;
-return;

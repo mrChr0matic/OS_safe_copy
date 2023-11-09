@@ -1,0 +1,212 @@
+alias userSP R1;
+userSP=SP;
+alias currPID R2;
+currPID=[SYSTEM_STATUS_TABLE+1];
+alias process_table R3;
+process_table=PROCESS_TABLE+currPID*16;
+[process_table+13]=userSP;
+SP=[process_table+11]*512-1;
+alias ret R4;
+ret=[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512;
+
+alias syscall R5;
+syscall=[[PTBR+2*((userSP-5)/512)]*512+(userSP-5)%512];
+[process_table+9]=syscall;
+
+if(syscall==22) then
+    if([SYSTEM_STATUS_TABLE+0]!=1 || currPID!=2) then
+        [ret]=-2;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    alias userName R6;
+    alias password R7;
+
+    userName=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+    password=[[PTBR+2*((userSP-3)/512)]*512+(userSP-3)%512];
+
+    alias i R8;
+    i=1;
+    while(i<MAX_USER_NUM) do
+        if([USER_TABLE+2*i]==userName) then
+            [ret]=-1;
+            [process_table+9]=0;
+            SP=userSP;
+            ireturn;
+        endif;
+        i=i+1;
+    endwhile;
+
+    i=1;
+    while(i<MAX_USER_NUM) do
+        if([USER_TABLE+2*i]==-1) then
+            break;
+        endif;
+        i=i+1;
+    endwhile;
+
+    if(i==MAX_USER_NUM) then
+        [ret]=-3;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    encrypt password;
+
+    [USER_TABLE+2*i]=userName;
+    [USER_TABLE+2*i+1]=password;
+
+    [ret]=0;
+    [process_table+9]=0;
+    SP=userSP;
+    ireturn;
+endif;
+
+if(syscall==23) then
+    if([SYSTEM_STATUS_TABLE+0]!=1 || currPID!=2) then
+        [ret]=-2;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    alias userName R6;
+    userName=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+
+    if(userName=="root" || userName=="kernel") then
+        [ret]=-2;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    alias i R7;
+    i=1;
+
+    while(i<MAX_USER_NUM) do
+        if([USER_TABLE+2*i]==userName) then
+            break;
+        endif;
+        i=i+1;
+    endwhile;
+
+    if(i==MAX_USER_NUM) then
+        [ret]=-1;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    alias userID R8;
+    userID=i;
+
+    i=0;
+    while(i<MAX_FILE_NUM) do
+        if([ROOT_FILE+8*i+3]==userName) then
+            [ret]=-3;
+            [process_table+9]=0;
+            SP=userSP;
+            ireturn;
+        endif;
+        i=i+1;
+    endwhile;
+
+    [USER_TABLE+2*userID]=-1;
+    [USER_TABLE+2*userID+1]=-1;
+
+    [ret]=0;
+    [process_table+9]=0;
+    SP=userSP;
+    ireturn;
+endif;
+
+if(syscall==24) then
+    if(currPID!=2) then
+        [ret]=-1;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    alias userName R6;
+    alias password R7;
+
+    userName=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+    password=[[PTBR+2*((userSP-3)/512)]*512+(userSP-3)%512];
+
+    alias i R8;
+    i=1;
+
+    while(i<MAX_USER_NUM) do
+        if([USER_TABLE+2*i]==userName) then
+            break;
+        endif;
+        i=i+1;
+    endwhile;
+
+    if(i==MAX_FILE_NUM) then
+        [ret]=-2;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    if(i!=[process_table+3]) then
+        if([SYSTEM_STATUS_TABLE+0]!=1) then
+            [ret]=-1;
+            [process_table+9]=0;
+            SP=userSP;
+            ireturn;
+        endif;
+    endif;
+
+    encrypt password;
+    [USER_TABLE+2*i+1]=password;
+
+    [ret]=0;
+    [process_table+9]=0;
+    SP=userSP;
+    ireturn;
+endif;
+
+if(syscall==26) then
+    alias userName R6;
+    userName=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+
+    alias i R7;
+    i=1;
+    while(i<MAX_FILE_NUM) do
+        if([USER_TABLE+2*i]==userName) then
+            [ret]=i;
+            [process_table+9]=0;
+            SP=userSP;
+            ireturn;
+        endif;
+        i=i+1;
+    endwhile;
+
+    [ret]=-1;
+    [process_table+9]=0;
+    SP=userSP;
+    ireturn;
+endif;
+
+if(syscall==25) then
+    alias userID R6;
+    userID=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+    
+    if(userID<0 || userID>15) then
+        [ret]=-1;
+        [process_table+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    [ret]=[USER_TABLE+2*userID];
+    [process_table+9]=0;
+    SP=userSP;
+    ireturn;
+endif;
