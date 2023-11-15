@@ -1,67 +1,60 @@
-alias userSP R1;
-userSP=SP;
-alias currPID R2;
-currPID=[SYSTEM_STATUS_TABLE+1];
-alias ret R4;
-ret=[PTBR+2*(userSP-1)/512]*512+(userSP-1)%512;
-alias process_table R3;
-process_table=PROCESS_TABLE+currPID*16;
-[process_table+13]=userSP;
-SP=[process_table+11]*512-1;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 9] = 27;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13] = SP;
+alias userSP R0;
+userSP = SP;
 
-[process_table+9]=27;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 11]*512 - 1;
 
-if(currPID!=1) then
-    [ret]=-2;
-    [process_table+9]=0;
-    SP=userSP;
-    ireturn;
-endif;
+alias username R1;
+alias password R2;
+alias returnAddress R3;
 
-alias userName R5;
-alias password R6;
+username = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+password = [[PTBR + 2*(userSP-3)/512]*512 + (userSP-3)%512];
+returnAddress = [PTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512;
 
-userName=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
-password=[[PTBR+2*((userSP-3)/512)]*512+(userSP-3)%512];
 
-alias i R7;
-i=1;
-while(i<MAX_USER_NUM) do
-    if([USER_TABLE+2*i]==userName) then
-        break;
+
+if ([SYSTEM_STATUS_TABLE+1] != 1) then
+    [returnAddress] = -1;
+else
+    alias counter R4;
+    counter = 0;
+    while (counter < MAX_USER_NUM) do
+        if ([USER_TABLE + counter*2 + 0] == username) then 
+            break;
+        endif;
+        counter = counter+1;
+    endwhile;
+
+    if (counter == MAX_USER_NUM) then
+        [returnAddress] = -1;
+    else
+        alias encryptedPassword R5;
+        encryptedPassword = password;
+        encrypt encryptedPassword;
+        if (encryptedPassword != [USER_TABLE + counter*2 + 1]) then 
+            [returnAddress] = -1;
+        else
+            [PROCESS_TABLE + 32 + 3] = counter; //userid
+            [PROCESS_TABLE + 32 + 4] = CREATED; //process state
+
+            [PROCESS_TABLE + 16 + 4] = WAIT_PROCESS;
+            [PROCESS_TABLE + 16 + 5] = 2; //waiting for SHELL to finish
+
+            [SYSTEM_STATUS_TABLE + 0] = counter;
+
+            multipush(R0, R1, R2, R3, R4, R5);
+            call SCHEDULER;
+            multipop(R0, R1, R2, R3, R4, R5);
+
+            [returnAddress] = 0;
+
+        endif;
     endif;
-    i=i+1;
-endwhile;
-
-if(i==MAX_USER_NUM) then
-    [ret]=-1;
-    [process_table+9]=0;
-    SP=userSP;
-    ireturn;
 endif;
 
-encrypt password;
+SP = userSP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1])*16 + 9] = 0;
 
-if(password!=[USER_TABLE+2*i+1]) then
-    [ret]=-1;
-    [process_table+9]=0;
-    SP=userSP;
-    ireturn;
-endif;
-
-[PROCESS_TABLE+2*16+4]=CREATED;
-[PROCESS_TABLE+2*16+3]=i;
-
-[process_table+4]=WAIT_PROCESS;
-[process_table+5]=2;
-
-[SYSTEM_STATUS_TABLE+0]=i;
-
-multipush(R1,R2,R3,R4,R5,R6,R7);
-call SCHEDULER;
-multipop(R1,R2,R3,R4,R5,R6,R7);
-
-[ret]=0;
-[process_table+9]=0;
-SP=userSP;
 ireturn;

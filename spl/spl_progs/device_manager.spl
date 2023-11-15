@@ -1,125 +1,87 @@
-breakpoint;
+alias functionNumber R1;
+alias currentPID R2;
 
-alias func_num R1;
+//disk store
+if (functionNumber == 1) then
+    alias pageNumber R3;
+    alias blockNumber R4;
 
+    multipush(R0, R1, R2, R3, R4);
+    functionNumber = 3;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4);
 
-if( func_num == DISK_STORE ) then
+    [DISK_STATUS_TABLE+1] = 1;
+    [DISK_STATUS_TABLE+2] = pageNumber;
+    [DISK_STATUS_TABLE+3] = blockNumber;
 
-	//arguments: currPID, PageNumber, Blocknumber
-	alias currPID R2;
-	alias page R3;
-	alias block R4;
+    store(pageNumber, blockNumber);
 
-	//acquire the disk
-
-	multipush(R0, R1, R2, R3, R4);
-	R1 = ACQUIRE_DISK;
-	call RESOURCE_MANAGER;
-	multipop(R0, R1, R2, R3, R4);
-
-	//set the parameters of disk status table
-
-	[DISK_STATUS_TABLE + 0] = 1; //busy
-	[DISK_STATUS_TABLE + 1] = 1; //load or store bit
-	[DISK_STATUS_TABLE + 2] = page;
-	[DISK_STATUS_TABLE + 3] = block;
-
-	store(page, block);
-
-	[PROCESS_TABLE + currPID*16 + 4] = WAIT_DISK;
-
-	//context switch
-
-	multipush(R0, R1, R2, R3, R4);
-	call SCHEDULER;
-	multipop(R0, R1, R2, R3, R4);
-
-	return;
-	
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
 endif;
 
+//disk load
+if (functionNumber == 2) then
+    breakpoint;
+    alias pageNumber R3;
+    alias blockNumber R4;
 
+    multipush(R0, R1, R2, R3, R4);
+    functionNumber = 3;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4);
 
-if ( func_num == DISK_LOAD) then
+    [DISK_STATUS_TABLE + 1] = 0;
+    [DISK_STATUS_TABLE + 2] = pageNumber;
+    [DISK_STATUS_TABLE + 3] = blockNumber;
 
-	alias currPID R2;
-	alias page_num R3;
-	alias block_num R4;
+    load(pageNumber, blockNumber);
 
-	// acquire disk
-	multipush(R1,R2,R3,R4);
-	func_num = ACQUIRE_DISK;
- 
-	call RESOURCE_MANAGER;
-
-	multipop(R1,R2,R3,R4);
-
-	[DISK_STATUS_TABLE + 1] = 0;
-	[DISK_STATUS_TABLE + 2] = page_num;
-	[DISK_STATUS_TABLE + 3] = block_num;
-	load(page_num,block_num);
-
-
-	[PROCESS_TABLE + currPID*16 + 4] = WAIT_DISK;
-	multipush(R1,R2,R3,R4);
-	call SCHEDULER;
-	multipop(R1,R2,R3,R4);
-
-	breakpoint;
-	return;
-
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
 endif;
 
+//terminal write
+if (functionNumber == 3) then 
+    alias word R3;
 
-if ( func_num == TERMINAL_WRITE ) then
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    
+    print word;
 
-	alias currPID R2;
-	// acquire terminal
-	alias word R3;
-	
-	multipush(R1,R2);
-	func_num = ACQUIRE_TERMINAL;
-	call RESOURCE_MANAGER;
-	multipop(R1,R2);
-	print word;
-	
-	// release terminal
-	
-	multipush(R1,R2);
-	func_num = RELEASE_TERMINAL;
-	call RESOURCE_MANAGER;
-	multipop(R1,R2);
-
-	breakpoint;
-	return;
-
+    multipush(R0, R1, R2, R3);
+    functionNumber = 9;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
 endif;
 
+//terminal read
+if (functionNumber == 4) then
+    alias word R3;
 
-if ( func_num == TERMINAL_READ ) then
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    breakpoint;
+    read;
+    breakpoint;
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
+    
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
 
-	alias currPID R2;
-	// acquire terminal
-	alias word_addr R3;
-	multipush(R1,R2,R3);
-	func_num = ACQUIRE_TERMINAL;
-	call RESOURCE_MANAGER;
-	multipop(R1,R2,R3);
-	read;
-	[PROCESS_TABLE + 16*currPID + 4] = WAIT_TERMINAL;
-	
-	// context switch module
-	
-	multipush(R1,R2,R3);
-	call SCHEDULER;
-	multipop(R1,R2,R3);
-	
-	alias word_phy R4;
-	word_phy = ([PTBR + 2 * ((word_addr) / 512)] * 512) + ((word_addr) % 512);
-	
-	[word_phy]  = [PROCESS_TABLE + 16*currPID + 8];
-	
+    alias physicalAddress R4;
+    physicalAddress = [PTBR + 2 * ((word)/512)] * 512 + (word)%512;
+    [physicalAddress] = [PROCESS_TABLE + (currentPID*16) + 8];
 endif;
-
-breakpoint;
 return;

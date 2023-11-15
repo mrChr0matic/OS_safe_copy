@@ -11,16 +11,24 @@ load --exec ../expl/samples/rm.xsm
 load --exec ../expl/samples/cat.xsm
 load --exec ../expl/samples/ls.xsm
 load --exec ../expl/samples/create.xsm
-load --exec ../expl/samples/stg25_a1.xsm
-load --exec ../expl/samples/stg25_a2.xsm
-load --exec ../expl/samples/stg25_a3.xsm
-load --exec ../expl/samples/stg25_a4.xsm
+load --exec ../expl/samples/stg27_a4.xsm
+load --exec ../expl/samples/pgm2.xsm
+load --exec ../expl/samples/stg27_a2.xsm
+load --exec ../expl/samples/pgm1.xsm
+load --exec ../expl/samples/stg27_a3.xsm
+load --exec ../expl/samples/pid.xsm
+load --exec ../expl/samples/stg27_a1.xsm
+load --exec ../expl/samples/merge.xsm
+load --exec ../expl/samples/m_sort.xsm
+load --exec ../expl/samples/m_store.xsm
+load --exec ../expl/samples/m_merge.xsm
 load --module 0 ../spl/spl_progs/resource_manager.xsm
 load --module 1 ../spl/spl_progs/process_manager.xsm
 load --module 2 ../spl/spl_progs/memory_manager.xsm
 load --module 3 ../spl/spl_progs/file_manager.xsm
 load --module 4 ../spl/spl_progs/device_manager.xsm
 load --module 5 ../spl/spl_progs/scheduler.xsm
+load --module 6 ../spl/spl_progs/pager_module.xsm
 load --module 7 ../spl/spl_progs/boot_module7.xsm
 load --int=timer ../spl/spl_progs/sample_timer.xsm
 load --int=console ../spl/spl_progs/console_interrupt_handler.xsm
